@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:kaufland_qr/database/databaseHelper.dart';
 import 'package:kaufland_qr/database/utils.dart';
 import 'package:kaufland_qr/models/qrcode.dart';
+import 'package:kaufland_qr/models/station.dart';
+import 'package:kaufland_qr/utils/reqHelper.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -29,16 +32,18 @@ class _HomePageState extends State<HomePage> {
         onSelectNotification: _notificationSelected);
   }
 
-  Future _notificationSelected(String playload) async {
-    QRCode qrCode = QRCode(
-        id: 1224,
-        isActive: 0,
-        offerDescription: "Du bekommst cooles Fleisch",
-        offerName: "Hammersache");
-    _showDialog(qrCode);
+  Future _notificationSelected(String stationId) async {
+    ReqHelper reqHelper = ReqHelper();
+    print("station: " + stationId);
+    int id = int.parse(stationId);
+    QRCode qrCode;
+    reqHelper.getQrCode(id).then((QRCode data) {
+      qrCode = data;
+      _showDialog(qrCode);
+    });
   }
 
-  Future _showNotificationQR() async {
+  Future _showNotificationQR(Station station) async {
     var androidPlatformChannelSpecifics = new AndroidNotificationDetails(
         'channel_id', 'QR Code Channel', 'QR Code description',
         playSound: false, importance: Importance.Max, priority: Priority.High);
@@ -48,10 +53,10 @@ class _HomePageState extends State<HomePage> {
         androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
     await flutterLocalNotificationPlugin.show(
       0,
-      'Einkaufswagen Coupong',
+      'Einkaufswagen Coupon an Station ${station.id}',
       'Hohlen Sie sich ihren Coupon ab. Klicken Sie hier!',
       platformChannelSpecifics,
-      payload: 'No_Sound',
+      payload: station.id.toString(),
     );
   }
 
@@ -86,8 +91,16 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               //Get action
               //Get qr code informations
+              ReqHelper reqHelper = ReqHelper();
+              reqHelper.getUsedAction().then((result) => {
+                    if (result != null)
+                      {
+                        _showNotificationQR(
+                          result,
+                        )
+                      }
+                  });
 
-              _showNotificationQR();
               print("Button pressed");
             },
           )
@@ -111,7 +124,7 @@ class _HomePageState extends State<HomePage> {
                     Text(
                         "Hier ist ihr QR Code. Scannen sie ihn einfach ab und aktivieren sie ihn"),
                     QrImage(
-                      data: "Das ist text data",
+                      data: qrCode.id.toString(),
                       size: 200.0,
                     ),
                     Row(
