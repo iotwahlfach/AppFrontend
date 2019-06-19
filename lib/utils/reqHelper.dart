@@ -22,9 +22,12 @@ class ReqHelper {
   }
 
   Future<QRCode> getQrCode(int stationId) async {
-    Map<String, dynamic> body = {"stationId": stationId};
-    http.Response response = await http.post('http://10.0.2.2:8082/v1/qrcode',
-        body: jsonEncode(body));
+    Map<String, String> body = {'stationId': stationId.toString()};
+    print(body);
+    http.Response response = await http.post(
+      'http://10.0.2.2:8082/v1/qrcode',
+      body: body,
+    );
     if (response.statusCode == 200) {
       var decodedJson = json.decode(response.body);
       QRCode ret = QRCode(
@@ -35,5 +38,17 @@ class ReqHelper {
       return ret;
     }
     return null;
+  }
+
+  Future<int> getQrCodeStatus(int qrCodeId) async {
+    int ret;
+    http.Response response =
+        await http.get("http://10.0.2.2:8082/v1/qrcode/${qrCodeId}");
+    if (response.statusCode == 200) {
+      var decodedJson = json.decode(response.body);
+      ret = decodedJson["qrCodeStatus"];
+      return ret;
+    }
+    return ret;
   }
 }

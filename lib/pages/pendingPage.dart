@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kaufland_qr/database/databaseHelper.dart';
 import 'package:kaufland_qr/models/qrcode.dart';
+import 'package:kaufland_qr/utils/reqHelper.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:toast/toast.dart';
 
 class PendingPage extends StatefulWidget {
   @override
@@ -31,6 +35,28 @@ class _PendingPageState extends State<PendingPage> {
           _qrCode = list.first;
       });
     });
+    ReqHelper reqHelper = ReqHelper();
+    const intervall = const Duration(seconds: 5);
+    new Timer.periodic(intervall, (Timer t) {
+      if (_qrCode != null) {
+        print("Timeclock");
+        reqHelper.getQrCodeStatus(_qrCode.id).then((status) {
+          print(status);
+          if (status == 0) {
+            return;
+          } else {
+            Toast.show("QR Code aktiviert", context,
+                duration: Toast.LENGTH_LONG, gravity: Toast.BOTTOM);
+            _qrCode.isActive = 1;
+            DatabaseHelper.instance.enableQrCode(_qrCode);
+            t.cancel();
+            setState(() {
+              _qrCode = null;
+            });
+          }
+        });
+      }
+    });
   }
 
   Widget _pageContent() {
@@ -46,7 +72,7 @@ class _PendingPageState extends State<PendingPage> {
           Align(
             alignment: Alignment.center,
             child: Text(
-                "Ihr QR Code ist noch nicht aktiviert. Bitte aktivieren Sie ihren QR Code an Station 5"),
+                "Ihr QR Code ist noch nicht aktiviert. Bitte aktivieren Sie ihren QR Code an Station ${_qrCode.station.name}"),
           ),
           SizedBox(
             height: 20,
@@ -54,6 +80,7 @@ class _PendingPageState extends State<PendingPage> {
           QrImage(
             data: _qrCode.id.toString(),
             size: 200.0,
+            version: 1,
           ),
         ],
       );

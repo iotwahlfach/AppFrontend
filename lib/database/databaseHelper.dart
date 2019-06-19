@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:kaufland_qr/models/qrcode.dart';
+import 'package:kaufland_qr/models/station.dart';
 import 'package:path/path.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
-  static final _databaseName = "IoTKaufland2.db";
+  static final _databaseName = "IoTHackathon2.db";
   static final _databaseVersion = 3;
 
   DatabaseHelper._privateConstructor();
@@ -33,7 +34,9 @@ class DatabaseHelper {
               `id`	INTEGER PRIMARY KEY,
               `offerName`	TEXT,
               `offerDescription`	TEXT,
-              `isActive`	INTEGER              
+              `isActive`	INTEGER,              
+              `stationId`	INTEGER,
+              `stationName`	TEXT 
               );
               ''');
   }
@@ -43,6 +46,13 @@ class DatabaseHelper {
   Future<int> insertQrCode(QRCode qrCode) async {
     Database db = await database;
     int id = await db.insert("qrcodes", qrCode.toMap());
+    return id;
+  }
+
+  Future<int> enableQrCode(QRCode qrCode) async {
+    Database db = await database;
+    int id = await db.update("qrcodes", qrCode.toMap(),
+        where: "id=?", whereArgs: [qrCode.id]);
     return id;
   }
 

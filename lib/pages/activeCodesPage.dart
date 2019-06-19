@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kaufland_qr/database/databaseHelper.dart';
+import 'package:kaufland_qr/models/qrcode.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class ActiveCodesPage extends StatefulWidget {
@@ -6,7 +8,22 @@ class ActiveCodesPage extends StatefulWidget {
 }
 
 class _ActiveCodesPageState extends State<ActiveCodesPage> {
-  List<String> qrCodeStringList = ["QRCode1", "QrCode2"];
+  List<QRCode> _qrCodeList = [];
+
+  void loadData() {
+    DatabaseHelper.instance.getQRCodesByStatus(1).then((qrCodeLists) {
+      setState(() {
+        _qrCodeList = qrCodeLists;
+      });
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +35,23 @@ class _ActiveCodesPageState extends State<ActiveCodesPage> {
 
   Widget _getPageContent() {
     Widget _ret = Container();
-    if (qrCodeStringList.isEmpty) {
+    if (_qrCodeList.isEmpty) {
       _ret = Text("Sie haben keine activen QR Codes.");
       return _ret;
     } else {
-      _ret = ListView(
-        children: _qrCodeListTiles(),
+      _ret = Column(
+        children: <Widget>[
+          RaisedButton(
+            child: Text("Reload"),
+            onPressed: () {
+              print("Pressed");
+              loadData();
+            },
+          ),
+          ListView(
+            children: _qrCodeListTiles(),
+          ),
+        ],
       );
     }
     return _ret;
@@ -31,13 +59,13 @@ class _ActiveCodesPageState extends State<ActiveCodesPage> {
 
   List<Widget> _qrCodeListTiles() {
     List<Widget> _ret = [];
-    for (String qrCode in qrCodeStringList) {
+    for (QRCode qrCode in _qrCodeList) {
       ListTile temp = ListTile(
         leading: Icon(Icons.fullscreen),
-        title: Text("Testtitle"),
-        subtitle: Text("Subttle"),
+        title: Text(qrCode.offerName),
+        subtitle: Text(qrCode.offerDescription),
         onTap: () {
-          _showDialog("Testdata");
+          _showDialog(qrCode);
         },
       );
       _ret.add(temp);
@@ -45,7 +73,7 @@ class _ActiveCodesPageState extends State<ActiveCodesPage> {
     return _ret;
   }
 
-  void _showDialog(String _qrCode) {
+  void _showDialog(QRCode qrCode) {
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -58,7 +86,7 @@ class _ActiveCodesPageState extends State<ActiveCodesPage> {
                 child: Column(
                   children: <Widget>[
                     QrImage(
-                      data: "Das ist text data",
+                      data: "${qrCode.id}",
                       size: 200.0,
                     ),
                     RaisedButton(

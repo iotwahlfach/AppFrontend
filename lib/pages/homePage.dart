@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
-
+import 'package:toast/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:kaufland_qr/database/databaseHelper.dart';
 import 'package:kaufland_qr/database/utils.dart';
@@ -11,7 +11,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage();
+  HomePage() {}
 
   _HomePageState createState() => _HomePageState();
 }
@@ -32,15 +32,15 @@ class _HomePageState extends State<HomePage> {
         onSelectNotification: _notificationSelected);
   }
 
-  Future _notificationSelected(String stationId) async {
+  Future _notificationSelected(String stationString) async {
     ReqHelper reqHelper = ReqHelper();
-    print("station: " + stationId);
-    int id = int.parse(stationId);
-    QRCode qrCode;
-    reqHelper.getQrCode(id).then((QRCode data) {
-      qrCode = data;
-      _showDialog(qrCode);
-    });
+    //Map<String, dynamic> map = await jsonDecode(stationString);
+    var stringArray = stationString.split(",");
+    print(stringArray[0]);
+    Station station =
+        Station(id: int.parse(stringArray[1]), name: stringArray[0]);
+
+    _showDialog(station);
   }
 
   Future _showNotificationQR(Station station) async {
@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
       'Einkaufswagen Coupon an Station ${station.id}',
       'Hohlen Sie sich ihren Coupon ab. Klicken Sie hier!',
       platformChannelSpecifics,
-      payload: station.id.toString(),
+      payload: "${station.name},${station.id.toString()}",
     );
   }
 
@@ -109,12 +109,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showDialog(QRCode qrCode) {
+  void _showDialog(Station station) {
     showDialog(
         context: context,
         builder: (BuildContext context) {
           return SimpleDialog(
-            title: Text("Your QR Code"),
+            title: Text("Einkaufscoupon"),
             children: <Widget>[
               Container(
                 width: 300.0,
@@ -122,11 +122,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   children: <Widget>[
                     Text(
-                        "Hier ist ihr QR Code. Scannen sie ihn einfach ab und aktivieren sie ihn"),
-                    QrImage(
-                      data: qrCode.id.toString(),
-                      size: 200.0,
-                    ),
+                        "Lieber Kunde, leider kommt es aktuell zu einem erhöhten Füllstand von Einkaufswagen bei Station ${station.name} mit der Nummer ${station.id}. Helfen Sie uns und holen Sie den Einkaufswagen an der Station ab. Sie bekommen einen QR Code den Sie an der Station aktivieren können."),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: <Widget>[
@@ -146,9 +142,21 @@ class _HomePageState extends State<HomePage> {
                           ),
                           onPressed: () {
                             Utils util = Utils();
-                            util.insertPendingQRCode(qrCode).then((id) {
-                              print("ID:" + id.toString());
-                              Navigator.of(context).pop();
+                            ReqHelper reqHelper = ReqHelper();
+                            QRCode qrCode;
+                            reqHelper.getQrCode(station.id).then((QRCode data) {
+                              qrCode = data;
+                              qrCode.station = station;
+                              print(qrCode);
+                              util.insertPendingQRCode(qrCode).then((id) {
+                                print("ID:" + id.toString());
+
+                                Toast.show(
+                                    "QR Code als Pending hinzugefügt", context,
+                                    duration: Toast.LENGTH_LONG,
+                                    gravity: Toast.BOTTOM);
+                                Navigator.of(context).pop();
+                              });
                             });
                           },
                         ),

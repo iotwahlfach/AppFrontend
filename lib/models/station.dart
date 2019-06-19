@@ -15,4 +15,9 @@ class Station {
     print(retMap.toString());
     return retMap.toString();
   }
+
+  Station.fromString(String stationString) {
+    var decodedJson = jsonDecode(stationString);
+    Station ret = Station(id: decodedJson["id"], name: decodedJson["name"]);
+  }
 }
